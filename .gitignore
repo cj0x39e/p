@@ -1,3 +1,5 @@
 .DS_Store
 p
 *.exe
+dist/
+release-notes-*.md

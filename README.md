@@ -10,6 +10,19 @@ Build from source:
 go build -o p
 ```
 
+Quick install script:
+
+```sh
+./install.sh /path/to/p
+```
+
+From GitHub release (macOS arm64 example):
+
+```sh
+curl -L https://github.com/cj0x39e/p/releases/download/v0.1.1/p_0.1.1_darwin_arm64.tar.gz \
+  | tar -xz && cd p_0.1.1_darwin_arm64 && ./install.sh ./p
+```
+
 ## Usage
 
 Default behavior copies the proxy env script to your clipboard. Paste and run it in your shell.
