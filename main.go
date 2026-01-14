@@ -274,7 +274,7 @@ func detectFromGSettings() (ProxyConfig, bool) {
 
 func detectFromPorts() ProxyConfig {
 	cfg := ProxyConfig{Source: "ports"}
-	candidatesHTTP := []int{7890, 7891, 7892, 8001, 8080, 8888, 6152, 1087, 10809}
+	candidatesHTTP := []int{7890, 7891, 7892, 8001, 8080, 8118, 8888, 2080, 3128, 6152, 1087, 10809}
 	candidatesSOCKS := []int{1080, 1081, 10808, 7892, 6153}
 
 	for _, port := range candidatesHTTP {
@@ -317,7 +317,9 @@ func detectFromApps() (ProxyConfig, bool) {
 		detectFromClashFamily,
 		detectFromSurge,
 		detectFromShadowsocks,
+		detectFromShadowsocksR,
 		detectFromV2RayN,
+		detectFromTrojan,
 		detectFromSingBox,
 		detectFromV2RayCore,
 	}
@@ -348,6 +350,11 @@ func detectFromShadowsocks() (ProxyConfig, bool) {
 	return detectFromShadowsocksConfigs(paths)
 }
 
+func detectFromShadowsocksR() (ProxyConfig, bool) {
+	paths := shadowsocksRConfigPaths()
+	return detectFromShadowsocksRConfigs(paths)
+}
+
 func detectFromV2RayN() (ProxyConfig, bool) {
 	if runtime.GOOS != "windows" {
 		return ProxyConfig{}, false
@@ -359,6 +366,11 @@ func detectFromV2RayN() (ProxyConfig, bool) {
 func detectFromSingBox() (ProxyConfig, bool) {
 	paths := singBoxConfigPaths()
 	return detectFromSingBoxConfigs(paths)
+}
+
+func detectFromTrojan() (ProxyConfig, bool) {
+	paths := trojanConfigPaths()
+	return detectFromTrojanConfigs(paths)
 }
 
 func detectFromV2RayCore() (ProxyConfig, bool) {
@@ -467,6 +479,54 @@ func detectFromV2RayNConfigs(paths []string) (ProxyConfig, bool) {
 			continue
 		}
 		cfg := ProxyConfig{Source: "app:v2rayn"}
+		if ports.HTTPPort > 0 {
+			cfg.HTTP = fmt.Sprintf("http://127.0.0.1:%d", ports.HTTPPort)
+			cfg.HTTPS = cfg.HTTP
+		}
+		if ports.SOCKSPort > 0 {
+			cfg.ALL = fmt.Sprintf("socks5://127.0.0.1:%d", ports.SOCKSPort)
+		}
+		cfg.Notes = append(cfg.Notes, "config "+filepath.Base(path))
+		return cfg, true
+	}
+	return ProxyConfig{}, false
+}
+
+func detectFromShadowsocksRConfigs(paths []string) (ProxyConfig, bool) {
+	for _, path := range expandPaths(paths) {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		ports := parseJSONPorts(data)
+		if !ports.hasAny() {
+			continue
+		}
+		cfg := ProxyConfig{Source: "app:shadowsocksr"}
+		if ports.HTTPPort > 0 {
+			cfg.HTTP = fmt.Sprintf("http://127.0.0.1:%d", ports.HTTPPort)
+			cfg.HTTPS = cfg.HTTP
+		}
+		if ports.SOCKSPort > 0 {
+			cfg.ALL = fmt.Sprintf("socks5://127.0.0.1:%d", ports.SOCKSPort)
+		}
+		cfg.Notes = append(cfg.Notes, "config "+filepath.Base(path))
+		return cfg, true
+	}
+	return ProxyConfig{}, false
+}
+
+func detectFromTrojanConfigs(paths []string) (ProxyConfig, bool) {
+	for _, path := range expandPaths(paths) {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		ports := parseJSONPorts(data)
+		if !ports.hasAny() {
+			continue
+		}
+		cfg := ProxyConfig{Source: "app:trojan"}
 		if ports.HTTPPort > 0 {
 			cfg.HTTP = fmt.Sprintf("http://127.0.0.1:%d", ports.HTTPPort)
 			cfg.HTTPS = cfg.HTTP
@@ -1154,6 +1214,38 @@ func shadowsocksConfigPaths() []string {
 			)
 		}
 	}
+	if runtime.GOOS == "linux" {
+		paths = append(paths,
+			"/etc/shadowsocks/config.json",
+			"/etc/shadowsocks.json",
+		)
+	}
+	return paths
+}
+
+func shadowsocksRConfigPaths() []string {
+	var paths []string
+	home := userHome()
+	if runtime.GOOS == "windows" {
+		appdata := os.Getenv("APPDATA")
+		if appdata != "" {
+			paths = append(paths,
+				filepath.Join(appdata, "ShadowsocksR", "gui-config.json"),
+				filepath.Join(appdata, "ShadowsocksR", "config.json"),
+			)
+		}
+	}
+	if runtime.GOOS == "linux" {
+		paths = append(paths,
+			"/etc/shadowsocksr/config.json",
+			"/etc/ssr/config.json",
+		)
+	}
+	if home != "" {
+		paths = append(paths,
+			filepath.Join(home, ".config", "shadowsocksr", "config.json"),
+		)
+	}
 	return paths
 }
 
@@ -1191,6 +1283,26 @@ func singBoxConfigPaths() []string {
 	return paths
 }
 
+func trojanConfigPaths() []string {
+	var paths []string
+	home := userHome()
+	if home != "" {
+		paths = append(paths,
+			filepath.Join(home, ".config", "trojan", "config.json"),
+		)
+	}
+	switch runtime.GOOS {
+	case "linux":
+		paths = append(paths, "/etc/trojan/config.json")
+	case "windows":
+		appdata := os.Getenv("APPDATA")
+		if appdata != "" {
+			paths = append(paths, filepath.Join(appdata, "trojan", "config.json"))
+		}
+	}
+	return paths
+}
+
 func v2rayCoreConfigPaths() []string {
 	var paths []string
 	home := userHome()
@@ -1205,6 +1317,8 @@ func v2rayCoreConfigPaths() []string {
 		paths = append(paths,
 			"/etc/v2ray/config.json",
 			"/etc/xray/config.json",
+			"/usr/local/etc/v2ray/config.json",
+			"/usr/local/etc/xray/config.json",
 		)
 	}
 	return paths

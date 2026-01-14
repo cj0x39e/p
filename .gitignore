@@ -3,3 +3,4 @@ p
 *.exe
 dist/
 release-notes-*.md
+.gocache/
