@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -159,6 +160,48 @@ func TestPSQuote(t *testing.T) {
 	}
 }
 
+func TestUserConfigSaveLoad(t *testing.T) {
+	tmp := t.TempDir()
+	setUserConfigDirForTest(t, tmp)
+
+	cfg := ProxyConfig{
+		HTTP:  "http://127.0.0.1:7890",
+		HTTPS: "http://127.0.0.1:7890",
+	}
+	if err := saveUserConfig(cfg); err != nil {
+		t.Fatalf("saveUserConfig failed: %v", err)
+	}
+	loaded, ok := loadUserConfig()
+	if !ok {
+		t.Fatalf("expected config to load")
+	}
+	if loaded.HTTP != cfg.HTTP || loaded.HTTPS != cfg.HTTPS {
+		t.Fatalf("unexpected loaded config: %#v", loaded)
+	}
+	if loaded.Source != "config" {
+		t.Fatalf("unexpected source: %s", loaded.Source)
+	}
+}
+
+func TestConfigFromPort(t *testing.T) {
+	cfg, err := configFromPort("7890")
+	if err != nil {
+		t.Fatalf("configFromPort failed: %v", err)
+	}
+	if cfg.HTTP != "http://127.0.0.1:7890" {
+		t.Fatalf("unexpected HTTP: %s", cfg.HTTP)
+	}
+	if cfg.HTTPS != "http://127.0.0.1:7890" {
+		t.Fatalf("unexpected HTTPS: %s", cfg.HTTPS)
+	}
+	if _, err := configFromPort("0"); err == nil {
+		t.Fatalf("expected error for invalid port")
+	}
+	if _, err := configFromPort("abc"); err == nil {
+		t.Fatalf("expected error for invalid port")
+	}
+}
+
 func TestTestProxyNoProxy(t *testing.T) {
 	if err := testProxy(ProxyConfig{}); err == nil {
 		t.Fatalf("expected error for missing proxy")
@@ -227,6 +270,19 @@ func TestHelperProcess(t *testing.T) {
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+func setUserConfigDirForTest(t *testing.T, dir string) {
+	t.Helper()
+	switch runtime.GOOS {
+	case "windows":
+		t.Setenv("APPDATA", dir)
+	default:
+		t.Setenv("XDG_CONFIG_HOME", dir)
+		if runtime.GOOS == "darwin" {
+			t.Setenv("HOME", dir)
+		}
+	}
 }
 
 func assertContains(t *testing.T, s, substr string) {

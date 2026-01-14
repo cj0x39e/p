@@ -17,6 +17,12 @@ import (
 var execCommand = exec.Command
 var execLookPath = exec.LookPath
 
+type SavedConfig struct {
+	HTTP  string `json:"http,omitempty"`
+	HTTPS string `json:"https,omitempty"`
+	ALL   string `json:"all,omitempty"`
+}
+
 type ProxyConfig struct {
 	HTTP   string
 	HTTPS  string
@@ -78,6 +84,30 @@ func main() {
 			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
+	case "set":
+		port := parseSetPort(args)
+		var cfg ProxyConfig
+		var ok bool
+		var err error
+		if port != "" {
+			cfg, err = configFromPort(port)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err.Error())
+				os.Exit(1)
+			}
+			ok = true
+		} else {
+			cfg, ok = promptUserConfig()
+		}
+		if !ok {
+			fmt.Fprintln(os.Stderr, "No config saved.")
+			os.Exit(1)
+		}
+		if err := saveUserConfig(cfg); err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+		fmt.Fprintln(os.Stderr, "Saved proxy config.")
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", cmd)
 		printHelp(os.Stderr)
@@ -95,6 +125,7 @@ func printHelp(out *os.File) {
 	fmt.Fprintln(out, "  p status         # show detected proxy")
 	fmt.Fprintln(out, "  p detect         # show detection details")
 	fmt.Fprintln(out, "  p test           # test proxy with curl to google.com")
+	fmt.Fprintln(out, "  p set [port]     # save local HTTP proxy port to user config")
 	fmt.Fprintln(out, "  p --shell sh     # force output shell (sh|fish|ps)")
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "Example:")
@@ -131,7 +162,20 @@ func detectProxy() ProxyConfig {
 		}
 		return cfg
 	}
-	return detectFromPorts()
+	cfg := detectFromPorts()
+	if cfg.HTTP != "" || cfg.HTTPS != "" || cfg.ALL != "" {
+		return cfg
+	}
+	if cfg, ok := loadUserConfig(); ok {
+		return cfg
+	}
+	if cfg, ok := promptUserConfig(); ok {
+		if err := saveUserConfig(cfg); err == nil {
+			cfg.Notes = append(cfg.Notes, "saved to user config")
+		}
+		return cfg
+	}
+	return cfg
 }
 
 func copyToClipboard(text string) error {
@@ -750,6 +794,127 @@ func testProxy(cfg ProxyConfig) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func loadUserConfig() (ProxyConfig, bool) {
+	path, err := userConfigPath()
+	if err != nil {
+		return ProxyConfig{}, false
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ProxyConfig{}, false
+	}
+	var saved SavedConfig
+	if err := json.Unmarshal(data, &saved); err != nil {
+		return ProxyConfig{}, false
+	}
+	if saved.HTTP == "" && saved.HTTPS == "" && saved.ALL == "" {
+		return ProxyConfig{}, false
+	}
+	return ProxyConfig{
+		HTTP:   saved.HTTP,
+		HTTPS: saved.HTTPS,
+		ALL:   saved.ALL,
+		Source: "config",
+		Notes:  []string{"user config"},
+	}, true
+}
+
+func saveUserConfig(cfg ProxyConfig) error {
+	path, err := userConfigPath()
+	if err != nil {
+		return err
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	saved := SavedConfig{HTTP: cfg.HTTP, HTTPS: cfg.HTTPS, ALL: cfg.ALL}
+	data, err := json.MarshalIndent(saved, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o644)
+}
+
+func userConfigPath() (string, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "p", "config.json"), nil
+}
+
+func promptUserConfig() (ProxyConfig, bool) {
+	if !isTerminal(os.Stdin) {
+		return ProxyConfig{}, false
+	}
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Fprint(os.Stderr, "No proxy detected. Enter local HTTP proxy port (e.g. 7890), or empty to skip: ")
+		line, err := reader.ReadString('\n')
+		if err != nil && line == "" {
+			return ProxyConfig{}, false
+		}
+		line = strings.TrimSpace(line)
+		if line == "" {
+			return ProxyConfig{}, false
+		}
+		cfg, err := configFromPort(line)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Invalid port. Try again.")
+			continue
+		}
+		cfg.Source = "prompt"
+		cfg.Notes = []string{"user input"}
+		return cfg, true
+	}
+}
+
+func isTerminal(f *os.File) bool {
+	info, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return (info.Mode() & os.ModeCharDevice) != 0
+}
+
+func configFromPort(portStr string) (ProxyConfig, error) {
+	port, err := strconv.Atoi(portStr)
+	if err != nil || port <= 0 || port > 65535 {
+		return ProxyConfig{}, fmt.Errorf("invalid port: %s", portStr)
+	}
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+	return ProxyConfig{
+		HTTP:  normalizeAddr("http", addr),
+		HTTPS: normalizeAddr("http", addr),
+	}, nil
+}
+
+func parseSetPort(args []string) string {
+	var port string
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--port":
+			if i+1 < len(args) {
+				port = args[i+1]
+				i++
+			}
+		case "--shell":
+			if i+1 < len(args) {
+				i++
+			}
+		default:
+			if strings.HasPrefix(args[i], "-") {
+				continue
+			}
+			if port == "" {
+				port = args[i]
+			}
+		}
+	}
+	return port
 }
 
 func proxyEnv(cfg ProxyConfig) []string {

@@ -55,6 +55,12 @@ Test proxy connectivity with curl:
 p test
 ```
 
+Save a local HTTP proxy port to user config:
+
+```sh
+p set 7890
+```
+
 Force shell output:
 
 ```sh
@@ -74,3 +80,4 @@ p --shell ps
 
 - `ping` uses ICMP and does not use HTTP/SOCKS proxies. Use `curl` to verify.
 - To apply in the current shell without clipboard, use `eval "$(p on)"`.
+- If no proxy is detected, `p` will prompt for a local HTTP proxy port and save it to the user config (for example `~/.config/p/config.json`).
