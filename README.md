@@ -87,6 +87,12 @@ p --shell fish
 p --shell ps
 ```
 
+Print version:
+
+```sh
+p --version
+```
+
 ## Detection Order
 
 1. Environment variables

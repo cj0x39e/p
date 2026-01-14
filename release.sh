@@ -45,7 +45,7 @@ build() {
   if [ "$goos" = "windows" ]; then binname=p.exe; fi
   rm -rf "$outdir"
   mkdir -p "$outdir"
-  CGO_ENABLED=0 GOOS=$goos GOARCH=$goarch go build -o "$outdir/$binname" ./
+  CGO_ENABLED=0 GOOS=$goos GOARCH=$goarch go build -ldflags "-X main.version=$VERSION" -o "$outdir/$binname" ./
   cp -f install.sh README.md "$outdir/"
   if [ "$goos" = "windows" ]; then
     (cd "$DIST_DIR" && zip -qr "p_${VERSION#v}_${goos}_${goarch}.zip" "p_${VERSION#v}_${goos}_${goarch}")

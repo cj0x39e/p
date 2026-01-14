@@ -17,6 +17,8 @@ import (
 var execCommand = exec.Command
 var execLookPath = exec.LookPath
 
+var version = "dev"
+
 type SavedConfig struct {
 	HTTP  string `json:"http,omitempty"`
 	HTTPS string `json:"https,omitempty"`
@@ -50,6 +52,10 @@ func main() {
 
 	if isHelpArgs(args) {
 		printHelp(os.Stderr)
+		return
+	}
+	if isVersionArgs(args) {
+		fmt.Fprintln(os.Stdout, version)
 		return
 	}
 
@@ -127,6 +133,7 @@ func printHelp(out *os.File) {
 	fmt.Fprintln(out, "  p test           # test proxy with curl to google.com")
 	fmt.Fprintln(out, "  p set [port]     # save local HTTP proxy port to user config")
 	fmt.Fprintln(out, "  p --shell sh     # force output shell (sh|fish|ps)")
+	fmt.Fprintln(out, "  p --version      # print version")
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "Example:")
 	fmt.Fprintln(out, "  p")
@@ -1068,6 +1075,16 @@ func isHelpArgs(args []string) bool {
 	for _, arg := range args {
 		switch arg {
 		case "-h", "--help", "help":
+			return true
+		}
+	}
+	return false
+}
+
+func isVersionArgs(args []string) bool {
+	for _, arg := range args {
+		switch arg {
+		case "--version", "-v", "version":
 			return true
 		}
 	}
