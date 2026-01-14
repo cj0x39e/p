@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.1.2
+
+- Fix help handling for `-h/--help` and keep clipboard messages off stdout
+- Update installer shell function to avoid `eval` for `status/detect/help`
+
 ## v0.1.1
 
 - Add `install.sh` to simplify installation and shell setup

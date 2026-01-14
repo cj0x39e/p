@@ -39,6 +39,11 @@ func main() {
 		}
 	}
 
+	if isHelpArgs(args) {
+		printHelp(os.Stderr)
+		return
+	}
+
 	switch cmd {
 	case "copy", "":
 		cfg := detectProxy()
@@ -46,7 +51,7 @@ func main() {
 		if err := copyToClipboard(script); err != nil {
 			fmt.Print(script)
 		} else {
-			fmt.Println("Copied proxy env to clipboard. Paste and run to apply.")
+			fmt.Fprintln(os.Stderr, "Copied proxy env to clipboard. Paste and run to apply.")
 		}
 	case "on":
 		cfg := detectProxy()
@@ -56,7 +61,7 @@ func main() {
 		if err := copyToClipboard(script); err != nil {
 			fmt.Print(script)
 		} else {
-			fmt.Println("Copied proxy unset to clipboard. Paste and run to apply.")
+			fmt.Fprintln(os.Stderr, "Copied proxy unset to clipboard. Paste and run to apply.")
 		}
 	case "status":
 		cfg := detectProxy()
@@ -64,29 +69,27 @@ func main() {
 	case "detect":
 		cfg := detectProxy()
 		printDetect(cfg)
-	case "help", "-h", "--help":
-		printHelp()
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", cmd)
-		printHelp()
+		printHelp(os.Stderr)
 		os.Exit(1)
 	}
 }
 
-func printHelp() {
-	fmt.Println("p - proxy helper")
-	fmt.Println()
-	fmt.Println("Usage:")
-	fmt.Println("  p                # copy shell commands to clipboard")
-	fmt.Println("  p on             # output shell commands to enable proxy")
-	fmt.Println("  p off            # output shell commands to disable proxy")
-	fmt.Println("  p status         # show detected proxy")
-	fmt.Println("  p detect         # show detection details")
-	fmt.Println("  p --shell sh     # force output shell (sh|fish|ps)")
-	fmt.Println()
-	fmt.Println("Example:")
-	fmt.Println("  p")
-	fmt.Println("  eval \"$(p on)\"")
+func printHelp(out *os.File) {
+	fmt.Fprintln(out, "p - proxy helper")
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, "Usage:")
+	fmt.Fprintln(out, "  p                # copy shell commands to clipboard")
+	fmt.Fprintln(out, "  p on             # output shell commands to enable proxy")
+	fmt.Fprintln(out, "  p off            # output shell commands to disable proxy")
+	fmt.Fprintln(out, "  p status         # show detected proxy")
+	fmt.Fprintln(out, "  p detect         # show detection details")
+	fmt.Fprintln(out, "  p --shell sh     # force output shell (sh|fish|ps)")
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, "Example:")
+	fmt.Fprintln(out, "  p")
+	fmt.Fprintln(out, "  eval \"$(p on)\"")
 }
 
 func detectShell() string {
@@ -757,6 +760,16 @@ func firstEnv(keys ...string) string {
 		}
 	}
 	return ""
+}
+
+func isHelpArgs(args []string) bool {
+	for _, arg := range args {
+		switch arg {
+		case "-h", "--help", "help":
+			return true
+		}
+	}
+	return false
 }
 
 type ProxyPorts struct {

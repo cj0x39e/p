@@ -18,8 +18,8 @@ install -m 0755 "$BIN_SRC" "$BIN_DIR/p"
 
 SHELL_NAME=$(basename "${SHELL:-sh}")
 RC_FILE=""
-FUNC_LINE_SH='p() { eval "$(command p "$@")"; }'
-FUNC_LINE_FISH='function p; eval (command p $argv); end'
+FUNC_LINE_SH='p() { case "$1" in status|detect|help|-h|--help) command p "$@";; *) eval "$(command p "$@")";; esac; }'
+FUNC_LINE_FISH='function p; switch $argv[1]; case status detect help -h --help; command p $argv; case "*"; eval (command p $argv); end; end'
 
 case "$SHELL_NAME" in
   zsh) RC_FILE="$HOME/.zshrc" ;;
@@ -33,7 +33,7 @@ if [ "$SHELL_NAME" = "fish" ]; then
     printf "\n%s\n" "$FUNC_LINE_FISH" >> "$RC_FILE"
   fi
 else
-  if [ ! -f "$RC_FILE" ] || ! grep -q 'p() { eval "$(command p' "$RC_FILE"; then
+  if [ ! -f "$RC_FILE" ] || ! grep -q 'p() { case "\\$1" in status' "$RC_FILE"; then
     printf "\n%s\n" "$FUNC_LINE_SH" >> "$RC_FILE"
   fi
 fi
