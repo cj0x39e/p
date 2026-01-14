@@ -59,8 +59,21 @@ build darwin amd64
 build linux amd64
 build windows amd64
 
+if [ -f "$DIST_DIR/p_${VERSION#v}_darwin_arm64.tar.gz" ]; then
+  cp -f "$DIST_DIR/p_${VERSION#v}_darwin_arm64.tar.gz" "$DIST_DIR/p_latest_darwin_arm64.tar.gz"
+fi
+if [ -f "$DIST_DIR/p_${VERSION#v}_darwin_amd64.tar.gz" ]; then
+  cp -f "$DIST_DIR/p_${VERSION#v}_darwin_amd64.tar.gz" "$DIST_DIR/p_latest_darwin_amd64.tar.gz"
+fi
+if [ -f "$DIST_DIR/p_${VERSION#v}_linux_amd64.tar.gz" ]; then
+  cp -f "$DIST_DIR/p_${VERSION#v}_linux_amd64.tar.gz" "$DIST_DIR/p_latest_linux_amd64.tar.gz"
+fi
+if [ -f "$DIST_DIR/p_${VERSION#v}_windows_amd64.zip" ]; then
+  cp -f "$DIST_DIR/p_${VERSION#v}_windows_amd64.zip" "$DIST_DIR/p_latest_windows_amd64.zip"
+fi
+
 find "$DIST_DIR" -maxdepth 1 -type d -name "p_${VERSION#v}_*" -exec rm -rf {} +
-find "$DIST_DIR" -maxdepth 1 -type f -name "p_${VERSION#v}_*" -print0 | xargs -0 shasum -a 256 > "$DIST_DIR/checksums.txt"
+find "$DIST_DIR" -maxdepth 1 -type f \( -name "p_${VERSION#v}_*" -o -name "p_latest_*" \) -print0 | xargs -0 shasum -a 256 > "$DIST_DIR/checksums.txt"
 
 CHANGELOG="CHANGELOG.md"
 if [ ! -f "$CHANGELOG" ]; then
