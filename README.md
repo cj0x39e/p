@@ -10,17 +10,35 @@ Build from source:
 go build -o p
 ```
 
-Quick install script:
+Quick install script (downloads latest release):
 
 ```sh
-./install.sh /path/to/p
+curl -fsSL https://raw.githubusercontent.com/cj0x39e/p/main/install.sh | sh
 ```
 
-From GitHub release (macOS arm64 example):
+Install to a custom directory:
 
 ```sh
-curl -L https://github.com/cj0x39e/p/releases/download/v0.1.1/p_0.1.1_darwin_arm64.tar.gz \
-  | tar -xz && cd p_0.1.1_darwin_arm64 && ./install.sh ./p
+P_INSTALL_DIR="$HOME/.local/bin" curl -fsSL https://raw.githubusercontent.com/cj0x39e/p/main/install.sh | sh
+```
+
+From a local build:
+
+```sh
+go build -o p
+./install.sh ./p
+```
+
+Windows (PowerShell, latest release):
+
+```powershell
+$repo = "cj0x39e/p"
+$tag = (Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest").tag_name
+$asset = "p_$($tag.TrimStart('v'))_windows_amd64.zip"
+$url = "https://github.com/$repo/releases/download/$tag/$asset"
+Invoke-WebRequest $url -OutFile $asset
+Expand-Archive $asset -DestinationPath ".\\p_$($tag.TrimStart('v'))_windows_amd64"
+Copy-Item ".\\p_$($tag.TrimStart('v'))_windows_amd64\\p.exe" "$env:USERPROFILE\\bin\\p.exe" -Force
 ```
 
 ## Usage
