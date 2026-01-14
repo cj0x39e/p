@@ -4,12 +4,6 @@
 
 ## Install
 
-Build from source:
-
-```sh
-go build -o p
-```
-
 Quick install script (downloads latest release):
 
 ```sh
@@ -33,12 +27,11 @@ Windows (PowerShell, latest release):
 
 ```powershell
 $repo = "cj0x39e/p"
-$tag = (Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest").tag_name
-$asset = "p_$($tag.TrimStart('v'))_windows_amd64.zip"
-$url = "https://github.com/$repo/releases/download/$tag/$asset"
+$asset = "p_latest_windows_amd64.zip"
+$url = "https://github.com/$repo/releases/latest/download/$asset"
 Invoke-WebRequest $url -OutFile $asset
-Expand-Archive $asset -DestinationPath ".\\p_$($tag.TrimStart('v'))_windows_amd64"
-Copy-Item ".\\p_$($tag.TrimStart('v'))_windows_amd64\\p.exe" "$env:USERPROFILE\\bin\\p.exe" -Force
+Expand-Archive $asset -DestinationPath ".\\p_latest_windows_amd64"
+Copy-Item ".\\p_latest_windows_amd64\\p.exe" "$env:USERPROFILE\\bin\\p.exe" -Force
 ```
 
 ## Usage
@@ -49,48 +42,24 @@ Default behavior copies the proxy env script to your clipboard. Paste and run it
 p
 ```
 
-Explicitly print the script to stdout:
+Common commands:
+
+| Command | Purpose |
+| --- | --- |
+| `p` | copy proxy env commands to clipboard |
+| `p on` | print shell commands to enable proxy |
+| `p off` | print shell commands to disable proxy |
+| `p status` | show detected proxy |
+| `p detect` | show detection details |
+| `p test` | test proxy connectivity with curl |
+| `p set 7890` | save local HTTP proxy port |
+| `p --shell sh` | force output shell (`sh`, `fish`, `ps`) |
+| `p --version` | print version |
+
+## Build from Source
 
 ```sh
-p on
-```
-
-Disable proxy:
-
-```sh
-p off
-```
-
-Show detected proxy:
-
-```sh
-p status
-```
-
-Test proxy connectivity with curl:
-
-```sh
-p test
-```
-
-Save a local HTTP proxy port to user config:
-
-```sh
-p set 7890
-```
-
-Force shell output:
-
-```sh
-p --shell sh
-p --shell fish
-p --shell ps
-```
-
-Print version:
-
-```sh
-p --version
+go build -o p
 ```
 
 ## Detection Order
