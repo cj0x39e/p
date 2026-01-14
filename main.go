@@ -14,6 +14,9 @@ import (
 	"time"
 )
 
+var execCommand = exec.Command
+var execLookPath = exec.LookPath
+
 type ProxyConfig struct {
 	HTTP   string
 	HTTPS  string
@@ -69,6 +72,12 @@ func main() {
 	case "detect":
 		cfg := detectProxy()
 		printDetect(cfg)
+	case "test":
+		cfg := detectProxy()
+		if err := testProxy(cfg); err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", cmd)
 		printHelp(os.Stderr)
@@ -85,6 +94,7 @@ func printHelp(out *os.File) {
 	fmt.Fprintln(out, "  p off            # output shell commands to disable proxy")
 	fmt.Fprintln(out, "  p status         # show detected proxy")
 	fmt.Fprintln(out, "  p detect         # show detection details")
+	fmt.Fprintln(out, "  p test           # test proxy with curl to google.com")
 	fmt.Fprintln(out, "  p --shell sh     # force output shell (sh|fish|ps)")
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "Example:")
@@ -724,6 +734,73 @@ func renderOff(shell string) string {
 	default:
 		return renderShUnset(unset)
 	}
+}
+
+func testProxy(cfg ProxyConfig) error {
+	if cfg.HTTP == "" && cfg.HTTPS == "" && cfg.ALL == "" {
+		return fmt.Errorf("no proxy detected")
+	}
+	if _, err := execLookPath("curl"); err != nil {
+		return fmt.Errorf("curl not found in PATH")
+	}
+	url := "https://www.google.com/generate_204"
+	fmt.Fprintf(os.Stderr, "Testing proxy with curl: %s\n", url)
+	cmd := execCommand("curl", "-I", "-L", "--connect-timeout", "5", "--max-time", "10", url)
+	cmd.Env = mergeEnv(os.Environ(), proxyEnv(cfg))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func proxyEnv(cfg ProxyConfig) []string {
+	var env []string
+	if cfg.HTTP != "" {
+		env = append(env, "HTTP_PROXY="+cfg.HTTP, "http_proxy="+cfg.HTTP)
+	}
+	if cfg.HTTPS != "" {
+		env = append(env, "HTTPS_PROXY="+cfg.HTTPS, "https_proxy="+cfg.HTTPS)
+	}
+	if cfg.ALL != "" {
+		env = append(env, "ALL_PROXY="+cfg.ALL, "all_proxy="+cfg.ALL)
+	}
+	env = append(env, "NO_PROXY=", "no_proxy=")
+	return env
+}
+
+func mergeEnv(base []string, overrides []string) []string {
+	merged := make(map[string]string, len(base))
+	order := make([]string, 0, len(base))
+	for _, entry := range base {
+		if entry == "" {
+			continue
+		}
+		key, val, ok := strings.Cut(entry, "=")
+		if !ok {
+			continue
+		}
+		if _, exists := merged[key]; !exists {
+			order = append(order, key)
+		}
+		merged[key] = val
+	}
+	for _, entry := range overrides {
+		if entry == "" {
+			continue
+		}
+		key, val, ok := strings.Cut(entry, "=")
+		if !ok {
+			continue
+		}
+		if _, exists := merged[key]; !exists {
+			order = append(order, key)
+		}
+		merged[key] = val
+	}
+	out := make([]string, 0, len(merged))
+	for _, key := range order {
+		out = append(out, key+"="+merged[key])
+	}
+	return out
 }
 
 func renderShSet(values map[string]string) string {

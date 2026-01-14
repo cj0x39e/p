@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -156,6 +157,76 @@ func TestPSQuote(t *testing.T) {
 	if got != "\"a`\"b\"" {
 		t.Fatalf("unexpected psQuote: %s", got)
 	}
+}
+
+func TestTestProxyNoProxy(t *testing.T) {
+	if err := testProxy(ProxyConfig{}); err == nil {
+		t.Fatalf("expected error for missing proxy")
+	}
+}
+
+func TestTestProxyRunsCurlWithEnv(t *testing.T) {
+	oldCommand := execCommand
+	oldLookPath := execLookPath
+	execCommand = func(name string, args ...string) *exec.Cmd {
+		allArgs := append([]string{"-test.run=TestHelperProcess", "--", name}, args...)
+		return exec.Command(os.Args[0], allArgs...)
+	}
+	execLookPath = func(string) (string, error) {
+		return "/usr/bin/curl", nil
+	}
+	t.Setenv("GO_WANT_HELPER_PROCESS", "1")
+	defer func() {
+		execCommand = oldCommand
+		execLookPath = oldLookPath
+	}()
+
+	cfg := ProxyConfig{
+		HTTP:  "http://127.0.0.1:8080",
+		HTTPS: "http://127.0.0.1:8443",
+		ALL:   "socks5://127.0.0.1:1080",
+	}
+	if err := testProxy(cfg); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestHelperProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
+		return
+	}
+	args := os.Args
+	for i, arg := range args {
+		if arg == "--" {
+			args = args[i+1:]
+			break
+		}
+	}
+	if len(args) == 0 || args[0] != "curl" {
+		_, _ = os.Stderr.WriteString("expected curl invocation\n")
+		os.Exit(1)
+	}
+	if !strings.Contains(strings.Join(args, " "), "https://www.google.com/generate_204") {
+		_, _ = os.Stderr.WriteString("expected google URL\n")
+		os.Exit(1)
+	}
+	if os.Getenv("HTTP_PROXY") != "http://127.0.0.1:8080" {
+		_, _ = os.Stderr.WriteString("unexpected HTTP_PROXY\n")
+		os.Exit(1)
+	}
+	if os.Getenv("HTTPS_PROXY") != "http://127.0.0.1:8443" {
+		_, _ = os.Stderr.WriteString("unexpected HTTPS_PROXY\n")
+		os.Exit(1)
+	}
+	if os.Getenv("ALL_PROXY") != "socks5://127.0.0.1:1080" {
+		_, _ = os.Stderr.WriteString("unexpected ALL_PROXY\n")
+		os.Exit(1)
+	}
+	if os.Getenv("NO_PROXY") != "" || os.Getenv("no_proxy") != "" {
+		_, _ = os.Stderr.WriteString("expected NO_PROXY cleared\n")
+		os.Exit(1)
+	}
+	os.Exit(0)
 }
 
 func assertContains(t *testing.T, s, substr string) {

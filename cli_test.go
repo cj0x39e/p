@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 )
 
@@ -48,42 +47,6 @@ func runCLI(t *testing.T, env []string, args ...string) string {
 		t.Fatalf("cli failed: %v\n%s", err, string(out))
 	}
 	return string(out)
-}
-
-func mergeEnv(base []string, overrides []string) []string {
-	merged := make(map[string]string, len(base))
-	order := make([]string, 0, len(base))
-	for _, entry := range base {
-		if entry == "" {
-			continue
-		}
-		key, val, ok := strings.Cut(entry, "=")
-		if !ok {
-			continue
-		}
-		if _, exists := merged[key]; !exists {
-			order = append(order, key)
-		}
-		merged[key] = val
-	}
-	for _, entry := range overrides {
-		if entry == "" {
-			continue
-		}
-		key, val, ok := strings.Cut(entry, "=")
-		if !ok {
-			continue
-		}
-		if _, exists := merged[key]; !exists {
-			order = append(order, key)
-		}
-		merged[key] = val
-	}
-	out := make([]string, 0, len(merged))
-	for _, key := range order {
-		out = append(out, key+"="+merged[key])
-	}
-	return out
 }
 
 func TestCLIOnShFromEnv(t *testing.T) {

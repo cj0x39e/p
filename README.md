@@ -49,6 +49,12 @@ Show detected proxy:
 p status
 ```
 
+Test proxy connectivity with curl:
+
+```sh
+p test
+```
+
 Force shell output:
 
 ```sh
