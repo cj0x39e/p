@@ -23,15 +23,16 @@ go build -o p
 ./install.sh ./p
 ```
 
-Windows (PowerShell, latest release):
+Windows (PowerShell, release download):
 
 ```powershell
 $repo = "cj0x39e/p"
-$asset = "p_latest_windows_amd64.zip"
-$url = "https://github.com/$repo/releases/latest/download/$asset"
+$tag = "v0.1.3"
+$asset = "p_$($tag.TrimStart('v'))_windows_amd64.zip"
+$url = "https://github.com/$repo/releases/download/$tag/$asset"
 Invoke-WebRequest $url -OutFile $asset
-Expand-Archive $asset -DestinationPath ".\\p_latest_windows_amd64"
-Copy-Item ".\\p_latest_windows_amd64\\p.exe" "$env:USERPROFILE\\bin\\p.exe" -Force
+Expand-Archive $asset -DestinationPath ".\\p_$($tag.TrimStart('v'))_windows_amd64"
+Copy-Item ".\\p_$($tag.TrimStart('v'))_windows_amd64\\p.exe" "$env:USERPROFILE\\bin\\p.exe" -Force
 ```
 
 ## Usage

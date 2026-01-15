@@ -34,6 +34,12 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
+if [ -f install.sh ]; then
+  tmpfile=$(mktemp)
+  sed "s/^VERSION=\"v[^\"]*\"/VERSION=\"$VERSION\"/" install.sh > "$tmpfile"
+  mv "$tmpfile" install.sh
+fi
+
 DIST_DIR="dist"
 mkdir -p "$DIST_DIR"
 

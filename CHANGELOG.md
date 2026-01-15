@@ -20,3 +20,7 @@ All notable changes to this project will be documented in this file.
 - Default command copies proxy env script to clipboard for quick paste/apply
 - Add `p on`, `p off`, `p status`, `p detect`, and shell targeting
 - Provide tests for parsers and shell output
+
+## v0.1.3
+
+- TODO: add release notes

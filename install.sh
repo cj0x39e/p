@@ -2,7 +2,7 @@
 set -eu
 
 REPO="cj0x39e/p"
-VERSION="v0.1.2"
+VERSION="v0.1.3"
 BIN_SRC=""
 
 if [ $# -gt 0 ]; then
@@ -11,7 +11,7 @@ elif [ -f "./p" ]; then
   BIN_SRC="./p"
 fi
 
-download_latest() {
+download_release() {
   if ! command -v curl >/dev/null 2>&1; then
     echo "curl is required to download releases." >&2
     exit 1
@@ -30,27 +30,15 @@ download_latest() {
     *) echo "Unsupported arch: $uname_m" >&2; exit 1 ;;
   esac
 
-  filename_latest="p_latest_${goos}_${goarch}.tar.gz"
-  url_latest="https://github.com/$REPO/releases/latest/download/$filename_latest"
+  filename="p_${VERSION#v}_${goos}_${goarch}.tar.gz"
+  url="https://github.com/$REPO/releases/download/$VERSION/$filename"
   tmpdir=$(mktemp -d)
   trap 'rm -rf "$tmpdir"' EXIT
 
-  echo "Downloading $url_latest"
-  if curl -fsSL -o "$tmpdir/$filename_latest" "$url_latest"; then
-    (cd "$tmpdir" && tar -xzf "$filename_latest")
-    BIN_SRC="$tmpdir/p_latest_${goos}_${goarch}/p"
-  else
-    if [ -z "$VERSION" ]; then
-      echo "Failed to download latest release and no VERSION fallback set." >&2
-      exit 1
-    fi
-    filename="p_${VERSION#v}_${goos}_${goarch}.tar.gz"
-    url="https://github.com/$REPO/releases/download/$VERSION/$filename"
-    echo "Downloading $url"
-    curl -fsSL -o "$tmpdir/$filename" "$url"
-    (cd "$tmpdir" && tar -xzf "$filename")
-    BIN_SRC="$tmpdir/p_${VERSION#v}_${goos}_${goarch}/p"
-  fi
+  echo "Downloading $url"
+  curl -fsSL -o "$tmpdir/$filename" "$url"
+  (cd "$tmpdir" && tar -xzf "$filename")
+  BIN_SRC="$tmpdir/p_${VERSION#v}_${goos}_${goarch}/p"
   if [ ! -f "$BIN_SRC" ]; then
     echo "Downloaded binary not found." >&2
     exit 1
@@ -58,7 +46,7 @@ download_latest() {
 }
 
 if [ -z "$BIN_SRC" ]; then
-  download_latest
+  download_release
 fi
 
 if [ ! -f "$BIN_SRC" ]; then
