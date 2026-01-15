@@ -76,11 +76,11 @@ case "$SHELL_NAME" in
 esac
 
 if [ "$SHELL_NAME" = "fish" ]; then
-  if [ ! -f "$RC_FILE" ] || ! grep -q 'function p; eval (command p' "$RC_FILE"; then
+  if [ ! -f "$RC_FILE" ] || ! grep -q 'case status detect help -h --help test set --version -v version' "$RC_FILE"; then
     printf "\n%s\n" "$FUNC_LINE_FISH" >> "$RC_FILE"
   fi
 else
-  if [ ! -f "$RC_FILE" ] || ! grep -q 'p() { case "\\$1" in status' "$RC_FILE"; then
+  if [ ! -f "$RC_FILE" ] || ! grep -q 'p() { case "\\$1" in status|detect|help|-h|--help|test|set|--version|-v|version' "$RC_FILE"; then
     printf "\n%s\n" "$FUNC_LINE_SH" >> "$RC_FILE"
   fi
 fi
