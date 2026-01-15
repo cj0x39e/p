@@ -38,6 +38,7 @@ if [ -f install.sh ]; then
   tmpfile=$(mktemp)
   sed "s/^VERSION=\"v[^\"]*\"/VERSION=\"$VERSION\"/" install.sh > "$tmpfile"
   mv "$tmpfile" install.sh
+  chmod +x install.sh
 fi
 
 DIST_DIR="dist"
