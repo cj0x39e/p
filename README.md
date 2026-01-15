@@ -52,7 +52,7 @@ Common commands:
 | `p off` | print shell commands to disable proxy |
 | `p status` | show detected proxy |
 | `p detect` | show detection details |
-| `p test` | test proxy connectivity with curl |
+| `p test` | test current proxy env with curl |
 | `p set 7890` | save local HTTP proxy port |
 | `p --shell sh` | force output shell (`sh`, `fish`, `ps`) |
 | `p --version` | print version |

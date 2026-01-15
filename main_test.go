@@ -203,7 +203,8 @@ func TestConfigFromPort(t *testing.T) {
 }
 
 func TestTestProxyNoProxy(t *testing.T) {
-	if err := testProxy(ProxyConfig{}); err == nil {
+	clearProxyEnv(t)
+	if err := testProxy(); err == nil {
 		t.Fatalf("expected error for missing proxy")
 	}
 }
@@ -224,12 +225,11 @@ func TestTestProxyRunsCurlWithEnv(t *testing.T) {
 		execLookPath = oldLookPath
 	}()
 
-	cfg := ProxyConfig{
-		HTTP:  "http://127.0.0.1:8080",
-		HTTPS: "http://127.0.0.1:8443",
-		ALL:   "socks5://127.0.0.1:1080",
-	}
-	if err := testProxy(cfg); err != nil {
+	t.Setenv("HTTP_PROXY", "http://127.0.0.1:8080")
+	t.Setenv("HTTPS_PROXY", "http://127.0.0.1:8443")
+	t.Setenv("ALL_PROXY", "socks5://127.0.0.1:1080")
+	t.Setenv("NO_PROXY", "example.com")
+	if err := testProxy(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -265,8 +265,8 @@ func TestHelperProcess(t *testing.T) {
 		_, _ = os.Stderr.WriteString("unexpected ALL_PROXY\n")
 		os.Exit(1)
 	}
-	if os.Getenv("NO_PROXY") != "" || os.Getenv("no_proxy") != "" {
-		_, _ = os.Stderr.WriteString("expected NO_PROXY cleared\n")
+	if os.Getenv("NO_PROXY") != "example.com" {
+		_, _ = os.Stderr.WriteString("expected NO_PROXY preserved\n")
 		os.Exit(1)
 	}
 	os.Exit(0)

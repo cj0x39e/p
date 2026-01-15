@@ -85,8 +85,7 @@ func main() {
 		cfg := detectProxy()
 		printDetect(cfg)
 	case "test":
-		cfg := detectProxy()
-		if err := testProxy(cfg); err != nil {
+		if err := testProxy(); err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
@@ -130,7 +129,7 @@ func printHelp(out *os.File) {
 	fmt.Fprintln(out, "  p off            # output shell commands to disable proxy")
 	fmt.Fprintln(out, "  p status         # show detected proxy")
 	fmt.Fprintln(out, "  p detect         # show detection details")
-	fmt.Fprintln(out, "  p test           # test proxy with curl to google.com")
+	fmt.Fprintln(out, "  p test           # test current proxy env with curl")
 	fmt.Fprintln(out, "  p set [port]     # save local HTTP proxy port to user config")
 	fmt.Fprintln(out, "  p --shell sh     # force output shell (sh|fish|ps)")
 	fmt.Fprintln(out, "  p --version      # print version")
@@ -787,17 +786,17 @@ func renderOff(shell string) string {
 	}
 }
 
-func testProxy(cfg ProxyConfig) error {
-	if cfg.HTTP == "" && cfg.HTTPS == "" && cfg.ALL == "" {
-		return fmt.Errorf("no proxy detected")
-	}
+func testProxy() error {
 	if _, err := execLookPath("curl"); err != nil {
 		return fmt.Errorf("curl not found in PATH")
 	}
+	if _, ok := detectFromEnv(); !ok {
+		return fmt.Errorf("no proxy env set")
+	}
 	url := "https://www.google.com/generate_204"
-	fmt.Fprintf(os.Stderr, "Testing proxy with curl: %s\n", url)
+	fmt.Fprintf(os.Stderr, "Testing current proxy env with curl: %s\n", url)
 	cmd := execCommand("curl", "-I", "-L", "--connect-timeout", "5", "--max-time", "10", url)
-	cmd.Env = mergeEnv(os.Environ(), proxyEnv(cfg))
+	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
