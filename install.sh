@@ -65,8 +65,8 @@ install -m 0755 "$BIN_SRC" "$BIN_DIR/p"
 
 SHELL_NAME=$(basename "${SHELL:-sh}")
 RC_FILE=""
-FUNC_LINE_SH='p() { case "$1" in status|detect|help|-h|--help) command p "$@";; *) eval "$(command p "$@")";; esac; }'
-FUNC_LINE_FISH='function p; switch $argv[1]; case status detect help -h --help; command p $argv; case "*"; eval (command p $argv); end; end'
+FUNC_LINE_SH='p() { case "$1" in status|detect|help|-h|--help|test|set|--version|-v|version) command p "$@";; *) eval "$(command p "$@")";; esac; }'
+FUNC_LINE_FISH='function p; switch $argv[1]; case status detect help -h --help test set --version -v version; command p $argv; case "*"; eval (command p $argv); end; end'
 
 case "$SHELL_NAME" in
   zsh) RC_FILE="$HOME/.zshrc" ;;
