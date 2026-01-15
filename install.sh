@@ -2,7 +2,7 @@
 set -eu
 
 REPO="cj0x39e/p"
-VERSION="v0.1.3"
+VERSION="v0.1.4"
 BIN_SRC=""
 
 if [ $# -gt 0 ]; then

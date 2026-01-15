@@ -24,3 +24,7 @@ All notable changes to this project will be documented in this file.
 ## v0.1.3
 
 - TODO: add release notes
+
+## v0.1.4
+
+- TODO: add release notes
